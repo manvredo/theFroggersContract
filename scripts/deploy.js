@@ -2,19 +2,18 @@
 const hre = require("hardhat");
 
 async function main() {
-  const baseTokenURI = "ipfs://bafybeiaa5hlwizfgbzzo3jc3lw55dzhxek6kckz47plol2bqflbzrvfbiu/";
-  
-  const contract = await hre.ethers.deployContract("Froggers01", [baseTokenURI]);
-
+  const Froggers01 = await hre.ethers.getContractFactory("Froggers01");
+  const contract = await Froggers01.deploy("ipfs://deineCID/");
   await contract.waitForDeployment();
 
-  console.log("✅ Contract deployed to:", contract.target);
+  console.log("✅ Deployed to:", await contract.getAddress());
 }
 
 main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
+
 
 
 
