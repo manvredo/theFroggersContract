@@ -1,0 +1,21 @@
+# Node modules
+node_modules/
+
+# Environment variables
+.env
+
+# Hardhat cache and artifacts
+cache/
+artifacts/
+
+# Optional: Logs
+*.log
+
+# Optional: npm debug files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Optional: VSCode settings
+.vscode/
+
