@@ -1,0 +1,26 @@
+.App {
+  text-align: center;
+  padding: 2rem;
+  font-family: Arial, sans-serif;
+}
+
+.gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.nft-card {
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 1rem;
+  width: 200px;
+  background: #f9f9f9;
+}
+
+.nft-card img {
+  max-width: 100%;
+  border-radius: 8px;
+}
+
