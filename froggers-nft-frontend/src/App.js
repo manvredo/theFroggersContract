@@ -1,56 +1,77 @@
-import React, { useEffect, useState } from 'react';
-import { ethers } from 'ethers';
-import './App.css';
+import React, { useEffect, useState } from "react";
+import { ethers } from "ethers";
+import FroggersABI from "./Froggers01.json"; // Stelle sicher, dass du die ABI hier reinkopierst
+import "./App.css";
 
-const CONTRACT_ADDRESS = "0x80D971EE6Dd8dC8681a061584bac9158fb62e851";
-const ABI = [
-  "function tokenURI(uint256 tokenId) view returns (string)",
-  "function totalSupply() view returns (uint256)",
-];
+const CONTRACT_ADDRESS = "0x80D971EE6Dd8dC8681a061584bac9158fb62e851"; // Deine aktuelle Adresse
+const IPFS_GATEWAY = "https://ipfs.filebase.io/ipfs/";
 
 function App() {
-  const [uris, setUris] = useState([]);
-  const [connected, setConnected] = useState(false);
+  const [frogs, setFrogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchNFTs = async () => {
+    try {
+      if (!window.ethereum) {
+        alert("Bitte installiere MetaMask");
+        return;
+      }
+
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, FroggersABI, signer);
+
+      const totalSupply = await contract.totalSupply();
+      const nftList = [];
+
+      for (let i = 0; i < Number(totalSupply); i++) {
+        const tokenUri = await contract.tokenURI(i);
+        const metadataUrl = ipfsToHttp(tokenUri);
+
+        const res = await fetch(metadataUrl);
+        const metadata = await res.json();
+
+        const imageUrl = ipfsToHttp(metadata.image);
+
+        nftList.push({
+          id: i,
+          name: metadata.name || `Frog #${i}`,
+          image: imageUrl,
+        });
+      }
+
+      setFrogs(nftList);
+    } catch (err) {
+      console.error("Fehler beim Laden der NFTs:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const ipfsToHttp = (ipfsUrl) => {
+    if (!ipfsUrl.startsWith("ipfs://")) return ipfsUrl;
+    return ipfsUrl.replace("ipfs://", IPFS_GATEWAY);
+  };
 
   useEffect(() => {
-    const loadNFTs = async () => {
-      if (!window.ethereum) return alert("Bitte installiere MetaMask");
-
-      try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
-        const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
-
-        const total = await contract.totalSupply();
-        const uriList = [];
-
-        for (let i = 0; i < Number(total); i++) {
-          const uri = await contract.tokenURI(i);
-          uriList.push(uri);
-        }
-
-        setUris(uriList);
-        setConnected(true);
-      } catch (err) {
-        console.error("Fehler beim Laden der NFTs:", err);
-      }
-    };
-
-    loadNFTs();
+    fetchNFTs();
   }, []);
 
   return (
     <div className="App">
       <h1>🐸 Froggers NFT Galerie</h1>
-      {!connected && <p>🔄 Lade NFTs oder verbinde MetaMask...</p>}
-      <div className="gallery">
-        {uris.map((uri, index) => (
-          <div key={index} className="nft-card">
-            <img src={uri.replace("ipfs://", "https://ipfs.io/ipfs/")} alt={`Frog #${index}`} />
-            <p>Frog #{index}</p>
-          </div>
-        ))}
-      </div>
+      {loading ? (
+        <p>🔄 Lade NFTs oder verbinde MetaMask...</p>
+      ) : (
+        <div className="gallery">
+          {frogs.map((frog) => (
+            <div key={frog.id} className="nft-card">
+              <img src={frog.image} alt={frog.name} />
+              <p>{frog.name}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
