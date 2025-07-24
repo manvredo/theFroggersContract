@@ -1,0 +1,13 @@
+{
+  "0xaaa111111111111111111111111111111111aaaa": {
+    "proof": [
+      "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+      "0xbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
+    ]
+  },
+  "0xbbb222222222222222222222222222222222bbbb": {
+    "proof": [
+      "0xfacefacefacefacefacefacefacefacefacefacefacefacefacefacefaceface"
+    ]
+  }
+}

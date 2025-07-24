@@ -1,0 +1,34 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "quantity",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "proof",
+        "type": "bytes32[]"
+      }
+    ],
+    "name": "presaleMint",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "quantity",
+        "type": "uint256"
+      }
+    ],
+    "name": "publicMint",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  }
+]
+
