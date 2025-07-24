@@ -1,59 +1,75 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.28;
 
-import "erc721a/contracts/ERC721A.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
-contract Froggers01 is ERC721A, Ownable {
-    using MerkleProof for bytes32[];
+contract FroggersNFT is ERC721Enumerable, Ownable {
+    uint256 public maxSupply = 1000;
+    uint256 public presalePrice = 0.02 ether;
+    uint256 public publicPrice = 0.03 ether;
 
-    uint256 public constant MAX_SUPPLY = 10000;
-    uint256 public constant PRESALE_PRICE = 0.005 ether;
-    uint256 public constant PUBLIC_PRICE = 0.01 ether;
-
-    bytes32 public merkleRoot;
-    string public baseTokenURI;
-    bool public presaleActive = true;
-    bool public publicSaleActive = false;
+    string public baseURI;
+    string public hiddenURI;
     bool public revealed = false;
 
-    mapping(address => uint256) public presaleMinted;
+    bool public presaleActive = false;
+    bool public publicSaleActive = false;
 
-    constructor(string memory _initBaseURI, address initialOwner)
-        ERC721A("Froggers01", "FROG")
-        Ownable(initialOwner)
-    {
-        baseTokenURI = _initBaseURI;
+    bytes32 public merkleRoot;
+
+    constructor(string memory _hiddenURI) ERC721("Froggers", "FROG") {
+        hiddenURI = _hiddenURI;
     }
 
+    // 🐸 PRESALE Mint (Whitelist)
     function presaleMint(uint256 quantity, bytes32[] calldata proof) external payable {
-        require(presaleActive, "Presale nicht aktiv");
-        require(totalSupply() + quantity <= MAX_SUPPLY, "Max erreicht");
+        require(presaleActive, "Presale inactive");
+        require(isWhitelisted(msg.sender, proof), "Not whitelisted");
+        require(msg.value >= presalePrice * quantity, "Insufficient ETH");
+        require(totalSupply() + quantity <= maxSupply, "Exceeds max supply");
 
-        bytes32 leaf = keccak256(abi.encodePacked(msg.sender));
-        require(MerkleProof.verify(proof, merkleRoot, leaf), "Nicht auf Whitelist");
-        require(presaleMinted[msg.sender] + quantity <= 2, "Presale-Limit erreicht");
-        require(msg.value >= quantity * PRESALE_PRICE, "Nicht genug ETH");
-
-        presaleMinted[msg.sender] += quantity;
-        _mint(msg.sender, quantity);
+        for (uint256 i = 0; i < quantity; i++) {
+            _safeMint(msg.sender, totalSupply());
+        }
     }
 
+    // 🚀 PUBLIC Mint (offen für alle)
     function publicMint(uint256 quantity) external payable {
-        require(publicSaleActive, "Public Sale nicht aktiv");
-        require(totalSupply() + quantity <= MAX_SUPPLY, "Max erreicht");
-        require(msg.value >= quantity * PUBLIC_PRICE, "Nicht genug ETH");
+        require(publicSaleActive, "Public sale inactive");
+        require(msg.value >= publicPrice * quantity, "Insufficient ETH");
+        require(totalSupply() + quantity <= maxSupply, "Exceeds max supply");
 
-        _mint(msg.sender, quantity);
+        for (uint256 i = 0; i < quantity; i++) {
+            _safeMint(msg.sender, totalSupply());
+        }
     }
 
-    function _baseURI() internal view override returns (string memory) {
-        return baseTokenURI;
+    // 🔐 Whitelist prüfen via Merkle
+    function isWhitelisted(address addr, bytes32[] calldata proof) public view returns (bool) {
+        bytes32 leaf = keccak256(abi.encodePacked(addr));
+        return MerkleProof.verify(proof, merkleRoot, leaf);
     }
 
-    function setBaseURI(string memory _newBaseURI) external onlyOwner {
-        baseTokenURI = _newBaseURI;
+    // 🖼️ Reveal & Metadata
+    function tokenURI(uint256 tokenId) public view override returns (string memory) {
+        require(_exists(tokenId), "Token does not exist");
+        return revealed
+            ? string(abi.encodePacked(baseURI, Strings.toString(tokenId), ".json"))
+            : hiddenURI;
+    }
+
+    // ✏️ Admin-Funktionen
+    function setBaseURI(string memory _uri) external onlyOwner {
+        baseURI = _uri;
+    }
+
+    function setHiddenURI(string memory _uri) external onlyOwner {
+        hiddenURI = _uri;
+    }
+
+    function reveal() external onlyOwner {
         revealed = true;
     }
 
@@ -61,15 +77,11 @@ contract Froggers01 is ERC721A, Ownable {
         merkleRoot = _root;
     }
 
-    function togglePresale() external onlyOwner {
-        presaleActive = !presaleActive;
+    function togglePresale(bool active) external onlyOwner {
+        presaleActive = active;
     }
 
-    function togglePublicSale() external onlyOwner {
-        publicSaleActive = !publicSaleActive;
-    }
-
-    function withdraw() external onlyOwner {
-        payable(owner()).transfer(address(this).balance);
+    function togglePublicSale(bool active) external onlyOwner {
+        publicSaleActive = active;
     }
 }

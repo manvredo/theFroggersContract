@@ -1,96 +1,152 @@
 'use client'
 
-import { useState } from 'react'
-import { useAccount, useWriteContract } from 'wagmi'
+import { useState, useEffect } from 'react'
+import {
+  useAccount,
+  useConnect,
+  useContractWrite,
+} from 'wagmi'
+import { injected } from '@wagmi/connectors'
+import { readContract } from '@wagmi/core'
+
 import abi from '@/lib/abi.json'
 import FroggersViewer from '@/components/FroggersViewer'
 import { getProofForAddress } from '@/utils/getMerkleProof'
 
-type SalePhase = 'presale' | 'public'
-
 export default function Home() {
-  const contractAddress = '0x85abcDEF1234567890abcDEF1234567890abcDEF'
-  const { address, isConnected } = useAccount()
-  const { writeContract, isPending, error } = useWriteContract()
+  const [merkleRoot, setMerkleRoot] = useState('')
+  const [revealed, setRevealed] = useState(false)
+  const [presaleActive, setPresaleActive] = useState(false)
+  const [publicSaleActive, setPublicSaleActive] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [isClient, setIsClient] = useState(false)
 
-  const [quantity, setQuantity] = useState(1)
-  const [minted, setMinted] = useState(false)
+  const { address, isConnected, chain } = useAccount()
+  const chainId = chain?.id
 
-  const salePhase: SalePhase = 'presale'
-  const proof = address ? getProofForAddress(address) ?? [] : []
+  const {
+    connect,
+    isLoading: connectLoading,
+  } = useConnect()
 
-  const whitelisted = proof.length > 0
+  const { writeAsync: writeToggleSale } = useContractWrite({
+    address: '0xYourContractAddress', // 🔧 Replace with your actual contract
+    abi,
+    functionName: 'toggleSale',
+  })
 
-  const handleMint = async () => {
-    const args = salePhase === 'presale' ? [quantity, proof] : [quantity]
-    const functionName = salePhase === 'presale' ? 'presaleMint' : 'publicMint'
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
+  useEffect(() => {
+    if (!chainId) return
+
+    const fetchMerkleRoot = async () => {
+      try {
+        const root = await readContract({
+          address: '0xYourContractAddress',
+          abi,
+          functionName: 'merkleRoot',
+          chainId,
+        })
+        setMerkleRoot(root as string)
+      } catch (err) {
+        console.error(err)
+        setError('Fehler beim Laden des Merkle Roots')
+      }
+    }
+
+    const fetchStatus = async () => {
+      try {
+        const [revealedStatus, presaleStatus, publicSaleStatus] = await Promise.all([
+          readContract({ address: '0xYourContractAddress', abi, functionName: 'revealed', chainId }),
+          readContract({ address: '0xYourContractAddress', abi, functionName: 'presaleActive', chainId }),
+          readContract({ address: '0xYourContractAddress', abi, functionName: 'publicSaleActive', chainId }),
+        ])
+
+        setRevealed(Boolean(revealedStatus))
+        setPresaleActive(Boolean(presaleStatus))
+        setPublicSaleActive(Boolean(publicSaleStatus))
+      } catch (err) {
+        console.error(err)
+        setError('Fehler beim Laden des Verkaufsstatus')
+      }
+    }
+
+    fetchMerkleRoot()
+    fetchStatus()
+  }, [chainId])
+
+  async function toggleSale(saleType: 'presale' | 'publicSale') {
+    setLoading(true)
+    setError('')
     try {
-      await writeContract({
-        address: contractAddress,
-        abi,
-        functionName,
-        args,
-        account: address,
-      })
-      setMinted(true)
+      await writeToggleSale({ args: [saleType] })
+      saleType === 'presale'
+        ? setPresaleActive((prev) => !prev)
+        : setPublicSaleActive((prev) => !prev)
     } catch (err) {
-      console.error('Croak-Fail beim Mint:', err)
+      console.error(err)
+      setError('Fehler beim Umschalten des Verkaufsstatus')
+    } finally {
+      setLoading(false)
     }
   }
 
+  const userProof = isConnected ? getProofForAddress(address) : []
+
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-6 bg-glibberGray text-white font-sans">
-      <h1 className="text-4xl font-bold text-frogGreen mb-6">
-        🐸 Froggers Mint Dapp
-      </h1>
+    <main className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">🐸 Froggers NFT Minting</h1>
 
-      <div className="bg-white text-glibberGray p-6 rounded shadow w-full max-w-md mb-8">
-        <div className="mb-4 text-center">
-          <p className="text-sm font-medium">🔍 Whitelist-Status:</p>
-          {!isConnected && (
-            <p className="text-gray-500">Wallet nicht verbunden</p>
+      {!isConnected ? (
+        <div>
+          <h2 className="mb-2">🔐 Wallet verbinden</h2>
+          {isClient && (
+            <button
+              onClick={() => connect({ connector: injected() })}
+              disabled={connectLoading}
+              className="btn-primary mb-2"
+            >
+              {connectLoading ? '🔄 Verbinde...' : '🔐 Mit MetaMask verbinden'}
+            </button>
           )}
-          {isConnected && whitelisted && (
-            <p className="text-green-600 font-semibold">✅ Du bist whitelisted!</p>
-          )}
-          {isConnected && !whitelisted && (
-            <p className="text-red-600 font-semibold">❌ Du bist nicht auf der Liste</p>
-          )}
+          {error && <p className="text-red-600 mt-2">{error}</p>}
         </div>
+      ) : (
+        <div>
+          <p>👤 Verbunden als: {address}</p>
 
-        <label className="text-sm font-medium">🐸 Anzahl Froggers:</label>
-        <input
-          type="number"
-          min={1}
-          max={10}
-          value={quantity}
-          onChange={(e) => setQuantity(Number(e.target.value))}
-          className="w-full text-center p-2 border rounded mt-2 mb-4"
-        />
-        <button
-          onClick={handleMint}
-          disabled={isPending || !whitelisted}
-          className="w-full bg-frogGreen text-white px-6 py-2 rounded hover:brightness-110 disabled:opacity-50"
-        >
-          {salePhase === 'presale'
-            ? '🌿 Presale Mint starten'
-            : '🚀 Public Mint starten'}
-        </button>
-        {error && (
-          <p className="text-red-500 text-sm font-mono text-center mt-4">
-            Croak-Error: {error.message}
-          </p>
-        )}
-        {minted && (
-          <p className="text-center text-frogGreen mt-4 font-semibold">
-            ✅ Mint erfolgreich!
-          </p>
-        )}
-      </div>
+          <div className="my-4 space-y-1">
+            <p>🌿 Merkle Root: {merkleRoot}</p>
+            <p>👁️ Reveal aktiv: {revealed ? '✅ Ja' : '❌ Nein'}</p>
+            <p>🌿 Presale aktiv: {presaleActive ? '✅ Ja' : '❌ Nein'}</p>
+            <p>🚀 Public Sale aktiv: {publicSaleActive ? '✅ Ja' : '❌ Nein'}</p>
+          </div>
 
-      {minted && isConnected && (
-        <FroggersViewer contractAddress={contractAddress} />
+          <div className="flex gap-2 my-4">
+            <button
+              onClick={() => toggleSale('presale')}
+              disabled={loading}
+              className="w-1/2 bg-white text-green-600 py-2 rounded font-semibold"
+            >
+              🔁 Presale umschalten
+            </button>
+            <button
+              onClick={() => toggleSale('publicSale')}
+              disabled={loading}
+              className="w-1/2 bg-white text-green-600 py-2 rounded font-semibold"
+            >
+              🔁 Public Sale umschalten
+            </button>
+          </div>
+
+          {error && <p className="text-red-600">{error}</p>}
+
+          <FroggersViewer merkleRoot={merkleRoot} userProof={userProof} />
+        </div>
       )}
     </main>
   )

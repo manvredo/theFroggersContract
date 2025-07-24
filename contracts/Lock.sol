@@ -1,34 +1,46 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-// Uncomment this line to use console.log
-// import "hardhat/console.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Lock {
-    uint public unlockTime;
-    address payable public owner;
+contract FroggersNFT is ERC721Enumerable, Ownable {
+    uint256 public maxSupply = 1000;
+    string public baseURI;
+    string public hiddenURI;
+    bool public revealed = false;
 
-    event Withdrawal(uint amount, uint when);
-
-    constructor(uint _unlockTime) payable {
-        require(
-            block.timestamp < _unlockTime,
-            "Unlock time should be in the future"
-        );
-
-        unlockTime = _unlockTime;
-        owner = payable(msg.sender);
+    constructor(string memory _hiddenURI) ERC721("Froggers", "FROG") {
+        hiddenURI = _hiddenURI;
     }
 
-    function withdraw() public {
-        // Uncomment this line, and the import of "hardhat/console.sol", to print a log in your terminal
-        // console.log("Unlock time is %o and block timestamp is %o", unlockTime, block.timestamp);
+    function mint(uint256 quantity) external {
+        require(totalSupply() + quantity <= maxSupply, "Exceeds max supply");
+        for (uint256 i = 0; i < quantity; i++) {
+            _safeMint(msg.sender, totalSupply());
+        }
+    }
 
-        require(block.timestamp >= unlockTime, "You can't withdraw yet");
-        require(msg.sender == owner, "You aren't the owner");
+    function tokenURI(uint256 tokenId) public view override returns (string memory) {
+        require(_exists(tokenId), "Token does not exist");
 
-        emit Withdrawal(address(this).balance, block.timestamp);
+        if (!revealed) {
+            return hiddenURI;
+        }
 
-        owner.transfer(address(this).balance);
+        return string(abi.encodePacked(baseURI, Strings.toString(tokenId), ".json"));
+    }
+
+    function setBaseURI(string memory _uri) external onlyOwner {
+        baseURI = _uri;
+    }
+
+    function setHiddenURI(string memory _uri) external onlyOwner {
+        hiddenURI = _uri;
+    }
+
+    function reveal() external onlyOwner {
+        revealed = true;
     }
 }
+
