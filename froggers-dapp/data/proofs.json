@@ -1,13 +1,13 @@
 {
-  "0xaaa111111111111111111111111111111111aaaa": {
+  "root": "0x972326272659dee5756b9b1394784d706c5b0d5fbebccfaab6e11b72eb713113",
+  "0x1234567890abcdef1234567890abcdef12345678": {
     "proof": [
-      "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
-      "0xbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
+      "0xb01d585c7603a95fe78c3adc3e28dbf081b4a0c12475436d8c9ac16d7be95488"
     ]
   },
-  "0xbbb222222222222222222222222222222222bbbb": {
+  "0x9876543210fedcba9876543210fedcba98765432": {
     "proof": [
-      "0xfacefacefacefacefacefacefacefacefacefacefacefacefacefacefaceface"
+      "0x5f6174255b44b7ca652c5289d2546de65e4394eb6aa52a40045e01237736d023"
     ]
   }
 }

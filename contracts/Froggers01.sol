@@ -4,6 +4,7 @@ pragma solidity ^0.8.28;
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract FroggersNFT is ERC721Enumerable, Ownable {
     uint256 public maxSupply = 1000;
@@ -60,7 +61,7 @@ contract FroggersNFT is ERC721Enumerable, Ownable {
             : hiddenURI;
     }
 
-    // ✏️ Admin-Funktionen
+    // ✏️ Admin-Funktionen (nur Owner)
     function setBaseURI(string memory _uri) external onlyOwner {
         baseURI = _uri;
     }
