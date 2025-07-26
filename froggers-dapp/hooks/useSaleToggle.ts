@@ -1,63 +1,98 @@
-import { useEffect, useState } from 'react'
-import { useAccount, useContractWrite } from 'wagmi'
-import { readContract } from '@wagmi/core'
+import { useState } from 'react'
+import {
+  useAccount,
+  useContractRead,
+  useContractWrite,
+  useWaitForTransactionReceipt,
+} from 'wagmi'
 import abi from '@/lib/abi.json'
 
+const contractAddress = '0xYourContractAddress'
+
 export function useSaleToggle() {
-  const { address, isConnected, chain } = useAccount()
-  const chainId = chain?.id
-  const contractAddress = '0xYourContractAddress'
-
-  const [merkleRoot, setMerkleRoot] = useState('')
-  const [revealed, setRevealed] = useState(false)
-  const [presaleActive, setPresaleActive] = useState(false)
-  const [publicSaleActive, setPublicSaleActive] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const { address } = useAccount()
   const [error, setError] = useState('')
+  const [txHash, setTxHash] = useState<string | null>(null)
+  const [activeSale, setActiveSale] = useState<'presale' | 'publicSale' | null>(null)
 
-  const togglePresaleHook = useContractWrite({ address: contractAddress, abi, functionName: 'togglePresale' })
-  const togglePublicSaleHook = useContractWrite({ address: contractAddress, abi, functionName: 'togglePublicSale' })
+  // 🔁 Live sale status from contract
+  const { data: presaleActive = false } = useContractRead({
+    address: contractAddress,
+    abi,
+    functionName: 'presaleActive',
+  })
 
-  useEffect(() => {
-    if (!chainId) return
-    const loadData = async () => {
-      try {
-        const [root, revealedStatus, presaleStatus, publicSaleStatus] = await Promise.all([
-          readContract({ address: contractAddress, abi, functionName: 'merkleRoot', chainId }),
-          readContract({ address: contractAddress, abi, functionName: 'revealed', chainId }),
-          readContract({ address: contractAddress, abi, functionName: 'presaleActive', chainId }),
-          readContract({ address: contractAddress, abi, functionName: 'publicSaleActive', chainId }),
-        ])
-        setMerkleRoot(root as string)
-        setRevealed(Boolean(revealedStatus))
-        setPresaleActive(Boolean(presaleStatus))
-        setPublicSaleActive(Boolean(publicSaleStatus))
-      } catch (err) {
-        setError('Fehler beim Laden der Contract-Daten')
-      }
-    }
+  const { data: publicSaleActive = false } = useContractRead({
+    address: contractAddress,
+    abi,
+    functionName: 'publicSaleActive',
+  })
 
-    loadData()
-  }, [chainId])
+  const { data: revealed = false } = useContractRead({
+    address: contractAddress,
+    abi,
+    functionName: 'isRevealed',
+  })
 
-  async function toggleSale(saleType: 'presale' | 'publicSale') {
-    setLoading(true)
+  const { data: merkleRoot = '' } = useContractRead({
+    address: contractAddress,
+    abi,
+    functionName: 'merkleRoot',
+  })
+
+  // 📝 Contract write: Toggle Presale
+  const { write: togglePresale, isLoading: sendingPresale } = useContractWrite({
+    address: contractAddress,
+    abi,
+    functionName: 'togglePresale',
+    onSuccess(data) {
+      setTxHash(data.hash)
+      setActiveSale('presale')
+    },
+    onError(err) {
+      setError(err.message || 'Presale toggle failed')
+    },
+  })
+
+  // 📝 Contract write: Toggle Public Sale
+  const { write: togglePublicSale, isLoading: sendingPublic } = useContractWrite({
+    address: contractAddress,
+    abi,
+    functionName: 'togglePublicSale',
+    onSuccess(data) {
+      setTxHash(data.hash)
+      setActiveSale('publicSale')
+    },
+    onError(err) {
+      setError(err.message || 'Public Sale toggle failed')
+    },
+  })
+
+  // ⏳ Wait for TX confirmation
+  const {
+    isLoading: waitingTx,
+    isSuccess,
+    isError: txFailed,
+  } = useWaitForTransactionReceipt({
+    hash: txHash,
+    onSuccess() {
+      console.log(`✅ ${activeSale} toggled successfully`)
+    },
+    onError(err) {
+      setError(err.message || 'Transaction failed during confirmation')
+    },
+  })
+
+  // 🕹️ Toggle trigger
+  function toggleSale(type: 'presale' | 'publicSale') {
     setError('')
-    try {
-      if (!isConnected) throw new Error('Wallet nicht verbunden')
-      const writeAsync =
-        saleType === 'presale' ? togglePresaleHook.writeAsync : togglePublicSaleHook.writeAsync
+    setTxHash(null)
 
-      const tx = await writeAsync()
-      await tx.wait()
-      if (saleType === 'presale') setPresaleActive(prev => !prev)
-      else setPublicSaleActive(prev => !prev)
-    } catch (err: any) {
-      if (err.code === 4001) setError('Benutzer hat die Transaction abgebrochen')
-      else if (err.message?.includes('onlyOwner')) setError('Nur der Owner darf das!')
-      else setError(err.message || 'Fehler beim Umschalten')
-    } finally {
-      setLoading(false)
+    if (type === 'presale') {
+      togglePresale?.()
+    }
+    if (type === 'publicSale') {
+      togglePublicSale?.()
     }
   }
 
@@ -68,7 +103,8 @@ export function useSaleToggle() {
     presaleActive,
     publicSaleActive,
     error,
-    loading,
+    loading: sendingPresale || sendingPublic || waitingTx,
+    success: isSuccess,
     toggleSale,
   }
 }

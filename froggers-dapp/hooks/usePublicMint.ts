@@ -8,19 +8,19 @@ import abi from '@/lib/abi.json'
 
 const contractAddress = '0xYourContractAddress'
 
-export function usePresaleMint() {
+export function usePublicMint() {
   const [txHash, setTxHash] = useState<string | null>(null)
   const [error, setError] = useState('')
 
   const { write, isLoading: sending } = useContractWrite({
     address: contractAddress,
     abi,
-    functionName: 'presaleMint',
+    functionName: 'publicMint',
     onSuccess(data) {
       setTxHash(data.hash)
     },
     onError(err) {
-      setError(err.message || 'Presale mint failed to send')
+      setError(err.message || 'Public mint failed to send')
     },
   })
 
@@ -31,12 +31,12 @@ export function usePresaleMint() {
     },
   })
 
-  function mint(quantity: number, proof: `0x${string}`[]) {
+  function mint(quantity: number) {
     setError('')
     setTxHash(null)
 
     write?.({
-      args: [quantity, proof],
+      args: [quantity],
       value: parseEther((0.01 * quantity).toString()),
     })
   }

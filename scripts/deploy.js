@@ -1,31 +1,23 @@
 const hre = require("hardhat");
 
 async function main() {
-  const [deployer] = await hre.ethers.getSigners();
+  // 🌿 Placeholder GIF für unrevealed NFTs
+  const hiddenURI = "https://vertical-plum-alligator.myfilebase.com/ipfs/QmPYmEvnA6gNFLJ6mtfJVfWfxbP8Nv8ok29AVcmqYe45sD/Placeholder_04.gif";
 
-  // Deine CID mit Metadaten-Ordner (Schrägstrich am Ende wichtig!)
-  const baseTokenURI = "ipfs://QmPoMcpNTFk7UKCQT1fg8cUzdm4u41mjMnakyHjTaQPHhL/metadata/";
+  // 🧪 Hole den Contract-Factory
+  const FroggersNFT = await hre.ethers.getContractFactory("FroggersNFT");
 
-  // Contract vorbereiten & deployen mit 2 Parametern: baseTokenURI & Owner
-  const Froggers01 = await hre.ethers.getContractFactory("Froggers01");
-  const contract = await Froggers01.deploy(baseTokenURI, deployer.address);
+  // 🐸 Deploy mit hiddenURI als Parameter
+  const contract = await FroggersNFT.deploy(hiddenURI);
+
+  // ⏳ Warten, bis Deployment abgeschlossen ist
   await contract.waitForDeployment();
 
-  // Contract-Adresse ausgeben
-  const deployedAddress = await contract.getAddress();
-  console.log("✅ Froggers01 deployed to:", deployedAddress);
-  console.log("📄 baseTokenURI gesetzt auf:", baseTokenURI);
-  console.log(`🧭 OpenSea Preview: https://testnets.opensea.io/assets/sepolia/${deployedAddress}/0`);
+  // 📍 Contract-Adresse anzeigen
+  console.log(`✅ FroggersNFT deployed to: ${contract.target}`);
 }
 
 main().catch((error) => {
-  console.error("❌ Fehler beim Deployment:", error);
+  console.error("❌ Deployment failed:", error);
   process.exitCode = 1;
 });
-
-
-
-
-
-
-

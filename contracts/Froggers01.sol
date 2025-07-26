@@ -1,67 +1,53 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.28;
+pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "erc721a/contracts/ERC721A.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
 
-contract FroggersNFT is ERC721Enumerable, Ownable {
-    uint256 public maxSupply = 1000;
-    uint256 public presalePrice = 0.02 ether;
-    uint256 public publicPrice = 0.03 ether;
-
-    string public baseURI;
-    string public hiddenURI;
+contract FroggersNFT is ERC721A, Ownable {
+    // 🐸 Supply und Konfiguration
+    uint256 public maxSupply = 5555;
+    uint256 public mintPrice = 0.02 ether;
+    bool public paused = true;
     bool public revealed = false;
 
-    bool public presaleActive = false;
-    bool public publicSaleActive = false;
+    // 🧪 URIs
+    string public baseURI;
+    string public hiddenURI;
 
-    bytes32 public merkleRoot;
+    // 👥 Mint-Tracking
+    mapping(address => uint256) public minted;
 
-    constructor(string memory _hiddenURI) ERC721("Froggers", "FROG") {
+    constructor(string memory _hiddenURI) ERC721A("FroggersNFT", "FROG") Ownable(msg.sender) {
         hiddenURI = _hiddenURI;
+        baseURI = "https://vertical-plum-alligator.myfilebase.com/ipfs/QmPoMcpNTFk7UKCQT1fg8cUzdm4u41mjMnakyHjTaQPHhL/";
     }
 
-    // 🐸 PRESALE Mint (Whitelist)
-    function presaleMint(uint256 quantity, bytes32[] calldata proof) external payable {
-        require(presaleActive, "Presale inactive");
-        require(isWhitelisted(msg.sender, proof), "Not whitelisted");
-        require(msg.value >= presalePrice * quantity, "Insufficient ETH");
-        require(totalSupply() + quantity <= maxSupply, "Exceeds max supply");
-
-        for (uint256 i = 0; i < quantity; i++) {
-            _safeMint(msg.sender, totalSupply());
-        }
+    // 🧭 Basis-URI
+    function _baseURI() internal view override returns (string memory) {
+        return baseURI;
     }
 
-    // 🚀 PUBLIC Mint (offen für alle)
-    function publicMint(uint256 quantity) external payable {
-        require(publicSaleActive, "Public sale inactive");
-        require(msg.value >= publicPrice * quantity, "Insufficient ETH");
-        require(totalSupply() + quantity <= maxSupply, "Exceeds max supply");
-
-        for (uint256 i = 0; i < quantity; i++) {
-            _safeMint(msg.sender, totalSupply());
-        }
-    }
-
-    // 🔐 Whitelist prüfen via Merkle
-    function isWhitelisted(address addr, bytes32[] calldata proof) public view returns (bool) {
-        bytes32 leaf = keccak256(abi.encodePacked(addr));
-        return MerkleProof.verify(proof, merkleRoot, leaf);
-    }
-
-    // 🖼️ Reveal & Metadata
+    // 🔍 tokenURI: Platzhalter oder echte JSON
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         require(_exists(tokenId), "Token does not exist");
-        return revealed
-            ? string(abi.encodePacked(baseURI, Strings.toString(tokenId), ".json"))
-            : hiddenURI;
+        if (!revealed) {
+            return hiddenURI;
+        }
+        return string(abi.encodePacked(baseURI, _toString(tokenId), ".json"));
     }
 
-    // ✏️ Admin-Funktionen (nur Owner)
+    // 🎟️ Öffentliche Mint-Funktion
+    function mint(uint256 amount) external payable {
+        require(!paused, "Minting is paused");
+        require(totalSupply() + amount <= maxSupply, "Max supply reached");
+        require(msg.value >= mintPrice * amount, "Insufficient ETH");
+
+        minted[msg.sender] += amount;
+        _safeMint(msg.sender, amount);
+    }
+
+    // ⚙️ Admin-Funktionen
     function setBaseURI(string memory _uri) external onlyOwner {
         baseURI = _uri;
     }
@@ -74,15 +60,16 @@ contract FroggersNFT is ERC721Enumerable, Ownable {
         revealed = true;
     }
 
-    function setMerkleRoot(bytes32 _root) external onlyOwner {
-        merkleRoot = _root;
+    function pause(bool _state) external onlyOwner {
+        paused = _state;
     }
 
-    function togglePresale(bool active) external onlyOwner {
-        presaleActive = active;
+    function setMintPrice(uint256 _price) external onlyOwner {
+        mintPrice = _price;
     }
 
-    function togglePublicSale(bool active) external onlyOwner {
-        publicSaleActive = active;
+    // 💸 Auszahlung
+    function withdraw() external onlyOwner {
+        payable(owner()).transfer(address(this).balance);
     }
 }

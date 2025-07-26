@@ -13,12 +13,8 @@ type SalePhase = 'presale' | 'public'
 
 export default function MintButton({
   contractAddress,
-  salePhase = 'presale',
-  proof = [],
 }: {
   contractAddress: `0x${string}`
-  salePhase?: SalePhase
-  proof?: string[]
 }) {
   const { address, isConnected, connector } = useAccount()
   const { connectAsync, connectors } = useConnect()
@@ -27,6 +23,17 @@ export default function MintButton({
 
   const [quantity, setQuantity] = useState(1)
   const [minted, setMinted] = useState(false)
+  const [salePhase, setSalePhase] = useState<SalePhase>('presale')
+
+  // 🧬 Dummy-Proof fürs Presale (nur zum Debuggen!)
+  const dummyProof: `0x${string}`[] = [
+    '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+  ]
+
+  const togglePhase = () => {
+    setSalePhase(prev => (prev === 'presale' ? 'public' : 'presale'))
+  }
 
   const handleMint = async () => {
     if (!isConnected || !connector || !connectorClient) {
@@ -39,23 +46,22 @@ export default function MintButton({
       await connectAsync({ connector: injected })
     }
 
-    // 🧪 Extra Logging — direkt vor dem Mint
     console.log('--- MintFlow DEBUG ---')
     console.log('isConnected:', isConnected)
     console.log('address:', address)
-    console.log('connector:', connector)
-    console.log('connectorClient:', connectorClient)
     console.log('salePhase:', salePhase)
-    console.log('args:', salePhase === 'presale' ? [quantity, proof] : [quantity])
 
     try {
       await writeContract({
         address: contractAddress,
         abi,
         functionName: salePhase === 'presale' ? 'presaleMint' : 'publicMint',
-        args: salePhase === 'presale' ? [quantity, proof] : [quantity],
+        args: salePhase === 'presale'
+          ? [quantity, dummyProof]
+          : [quantity],
+        value: BigInt("10000000000000000"), // z. B. 0.01 ETH
         account: address,
-        connector, // ✅ client entfernt!
+        connector,
       })
       setMinted(true)
     } catch (err) {
@@ -67,14 +73,19 @@ export default function MintButton({
     <div className="flex flex-col items-center gap-6 p-6 border rounded bg-white text-glibberGray shadow-lg">
       <div className="w-full text-sm text-left">
         🔍 <strong>Status-Check:</strong><br />
+        • Phase: {salePhase === 'presale' ? '🌿 Presale' : '🚀 Public'}<br />
         • Connected: {isConnected ? '✅ Ja' : '❌ Nein'}<br />
         • Connector: {connector ? connector.name : '❌'}<br />
         • Client: {connectorClient ? '✅ Bereit' : '❌ Nicht geladen'}
       </div>
 
+      <button onClick={togglePhase} className="bg-sky-200 text-black px-4 py-2 rounded hover:brightness-105">
+        🔄 Phase wechseln → Jetzt: {salePhase === 'presale' ? 'Presale' : 'Public'}
+      </button>
+
       {!minted ? (
         <>
-          <label className="text-sm font-medium">🐸 Anzahl Froggers:</label>
+          <label className="text-sm font-medium mt-2">🐸 Anzahl Froggers:</label>
           <input
             type="number"
             min={1}
@@ -94,7 +105,7 @@ export default function MintButton({
           </button>
         </>
       ) : (
-        <p className="text-center text-lg text-frogGreen">✅ Mint erfolgreich!</p>
+        <p className="text-center text-lg text-frogGreen mt-2">✅ Mint erfolgreich!</p>
       )}
 
       {error && (

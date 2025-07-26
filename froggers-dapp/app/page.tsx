@@ -49,19 +49,3 @@ export default function Home() {
     </main>
   )
 }
-
-
-
-
-
-
-
-
-
-
-
-
-import PresaleMint from '@/components/PresaleMint'
-
-// ...
-<PresaleMint merkleRoot={merkleRoot} userProof={userProof} />
