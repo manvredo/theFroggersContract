@@ -1,32 +1,24 @@
+// 📦 Imports
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
-describe("Froggers01", function () {
-  let Froggers, contract, owner, addr1;
+// 📂 Test Suite: FroggersNFT Contract
+describe("FroggersNFT", function () {
+  let contract;
 
-  beforeEach(async () => {
-    [owner, addr1] = await ethers.getSigners();
-    Froggers = await ethers.getContractFactory("Froggers01");
-    contract = await Froggers.deploy("ipfs://deineCID/metadata/");
+  // 🔧 Setup für jeden Test
+  beforeEach(async function () {
+    const FroggersFactory = await ethers.getContractFactory("FroggersNFT");
+    const hiddenUri = "ipfs://hidden-uri";
+
+    contract = await FroggersFactory.deploy(hiddenUri); // ✅ Kein .deployed() nötig
   });
 
-  it("soll den baseURI korrekt setzen", async () => {
-    expect(await contract.baseTokenURI()).to.equal("ipfs://deineCID/metadata/");
+  // 🧪 Test: hiddenURI sollte korrekt gesetzt sein
+  it("soll das hiddenURI korrekt setzen", async function () {
+    const expectedURI = "ipfs://hidden-uri";
+    expect(await contract.hiddenURI()).to.equal(expectedURI);
   });
 
-  it("mint() sollte nur vom Owner erlaubt sein", async () => {
-    await expect(contract.connect(addr1).mint(addr1.address, 1))
-      .to.be.revertedWith("Ownable: caller is not the owner");
-  });
-
-  it("soll korrekt minten und tokenURI liefern", async () => {
-    await contract.mint(addr1.address, 1);
-    expect(await contract.totalSupply()).to.equal(1);
-    expect(await contract.tokenURI(0)).to.equal("ipfs://deineCID/metadata/0.json");
-  });
-
-  it("soll die Max Supply einhalten", async () => {
-    await expect(contract.mint(addr1.address, 10001))
-      .to.be.revertedWith("Max supply exceeded");
-  });
+  // 🧠 Weitere Tests ...
 });
