@@ -20,49 +20,52 @@ export default function CroakAdminPanel({ contractAddress }: Props) {
   const [hiddenURI, setHiddenURI] = useState('')
   const [merkleRoot, setMerkleRoot] = useState('')
 
-  useEffect(() => {
-    const loadStatus = async () => {
-      try {
-        const owner = await readContract({
-          address: contractAddress,
-          abi,
-          functionName: 'owner',
-        })
-        setIsOwner(owner.toLowerCase() === address?.toLowerCase())
+  // 🔄 Lade aktuellen Contract-Status
+  const loadStatus = async () => {
+    try {
+      const owner = await readContract({
+        address: contractAddress,
+        abi,
+        functionName: 'owner',
+      })
+      setIsOwner(owner.toLowerCase() === address?.toLowerCase())
 
-        const supply = await readContract({
-          address: contractAddress,
-          abi,
-          functionName: 'totalSupply',
-        })
-        setTotalMinted(Number(supply))
+      const supply = await readContract({
+        address: contractAddress,
+        abi,
+        functionName: 'totalSupply',
+      })
+      setTotalMinted(Number(supply))
 
-        const isRevealed = await readContract({
-          address: contractAddress,
-          abi,
-          functionName: 'revealed',
-        })
-        setRevealed(Boolean(isRevealed))
+      const isRevealed = await readContract({
+        address: contractAddress,
+        abi,
+        functionName: 'revealed',
+      })
+      setRevealed(Boolean(isRevealed))
 
-        const isPresale = await readContract({
-          address: contractAddress,
-          abi,
-          functionName: 'presaleActive',
-        })
-        setPresaleActive(Boolean(isPresale))
+      const isPresale = await readContract({
+        address: contractAddress,
+        abi,
+        functionName: 'presaleActive',
+      })
+      setPresaleActive(Boolean(isPresale))
 
-        const isPublic = await readContract({
-          address: contractAddress,
-          abi,
-          functionName: 'publicSaleActive',
-        })
-        setPublicSaleActive(Boolean(isPublic))
-      } catch (err) {
-        console.error('Croak-Admin-Status error:', err)
-      }
+      const isPublic = await readContract({
+        address: contractAddress,
+        abi,
+        functionName: 'publicSaleActive',
+      })
+      setPublicSaleActive(Boolean(isPublic))
+    } catch (err) {
+      console.error('🔴 Fehler beim Laden des Contract-Status:', err)
     }
+  }
 
-    loadStatus()
+  useEffect(() => {
+    if (isConnected && address) {
+      loadStatus()
+    }
   }, [isConnected, address, contractAddress])
 
   const triggerReveal = async () => {
@@ -71,20 +74,19 @@ export default function CroakAdminPanel({ contractAddress }: Props) {
         address: contractAddress,
         abi,
         functionName: 'reveal',
-        args: [],
         account: address,
       })
       alert('👁️ Reveal wurde ausgelöst!')
-      setRevealed(true)
+      await loadStatus()
     } catch (err) {
-      console.error('Croak-Reveal-Error:', err)
+      console.error('🔴 Reveal-Fehler:', err)
+      alert('Fehler beim Reveal!')
     }
   }
 
   const updateURI = async (type: 'base' | 'hidden') => {
     const uri = type === 'base' ? baseURI : hiddenURI
     const fn = type === 'base' ? 'setBaseURI' : 'setHiddenURI'
-
     try {
       await writeContract({
         address: contractAddress,
@@ -93,9 +95,11 @@ export default function CroakAdminPanel({ contractAddress }: Props) {
         args: [uri],
         account: address,
       })
-      alert(`🔗 ${type === 'base' ? 'BaseURI' : 'HiddenURI'} wurde gesetzt`)
+      alert(`🔗 ${fn} wurde gesetzt!`)
+      await loadStatus()
     } catch (err) {
-      console.error(`Croak-URI-Set-Error:`, err)
+      console.error(`🔴 URI-Set-Fehler (${fn}):`, err)
+      alert(`Fehler beim Setzen der ${fn}`)
     }
   }
 
@@ -108,9 +112,11 @@ export default function CroakAdminPanel({ contractAddress }: Props) {
         args: [merkleRoot],
         account: address,
       })
-      alert('🌿 MerkleRoot gesetzt!')
+      alert('🌿 MerkleRoot wurde gesetzt!')
+      await loadStatus()
     } catch (err) {
-      console.error('Croak-Merkle-Set-Error:', err)
+      console.error('🔴 MerkleRoot-Fehler:', err)
+      alert('Fehler beim MerkleRoot-Setzen!')
     }
   }
 
@@ -121,15 +127,13 @@ export default function CroakAdminPanel({ contractAddress }: Props) {
         address: contractAddress,
         abi,
         functionName: fn,
-        args: [!(type === 'presale' ? presaleActive : publicSaleActive)],
         account: address,
       })
-      alert(`🛑 ${type} Sale toggled!`)
-      type === 'presale'
-        ? setPresaleActive((prev) => !prev)
-        : setPublicSaleActive((prev) => !prev)
+      alert(`🔁 ${type === 'presale' ? 'Presale' : 'Public Sale'} toggled!`)
+      await loadStatus()
     } catch (err) {
-      console.error('Croak-SaleToggle-Error:', err)
+      console.error('🔴 Sale-Toggle-Fehler:', err)
+      alert('Fehler beim Sale-Toggle!')
     }
   }
 

@@ -7,7 +7,7 @@ import {
 } from 'wagmi'
 import abi from '@/lib/abi.json'
 
-const contractAddress = '0xYourContractAddress'
+const contractAddress = '0x31d57EDE517E027C2125B5Db8c54d28Db5ea0615' // Deine aktuelle Contract-Adresse
 
 export function useSaleToggle() {
   const { address } = useAccount()
@@ -15,32 +15,29 @@ export function useSaleToggle() {
   const [txHash, setTxHash] = useState<string | null>(null)
   const [activeSale, setActiveSale] = useState<'presale' | 'publicSale' | null>(null)
 
-  // 🔁 Live sale status from contract
+  // 🔁 Live sale status mit watch:true
   const { data: presaleActive = false } = useContractRead({
     address: contractAddress,
     abi,
     functionName: 'presaleActive',
+    watch: true,
   })
 
   const { data: publicSaleActive = false } = useContractRead({
     address: contractAddress,
     abi,
     functionName: 'publicSaleActive',
+    watch: true,
   })
 
-  const { data: revealed = false } = useContractRead({
+  const { data: paused = true } = useContractRead({
     address: contractAddress,
     abi,
-    functionName: 'isRevealed',
+    functionName: 'paused',
+    watch: true,
   })
 
-  const { data: merkleRoot = '' } = useContractRead({
-    address: contractAddress,
-    abi,
-    functionName: 'merkleRoot',
-  })
-
-  // 📝 Contract write: Toggle Presale
+  // 📝 Toggle Presale
   const { write: togglePresale, isLoading: sendingPresale } = useContractWrite({
     address: contractAddress,
     abi,
@@ -54,7 +51,7 @@ export function useSaleToggle() {
     },
   })
 
-  // 📝 Contract write: Toggle Public Sale
+  // 📝 Toggle Public Sale
   const { write: togglePublicSale, isLoading: sendingPublic } = useContractWrite({
     address: contractAddress,
     abi,
@@ -68,7 +65,7 @@ export function useSaleToggle() {
     },
   })
 
-  // ⏳ Wait for TX confirmation
+  // ⏳ Transaktion bestätigen
   const {
     isLoading: waitingTx,
     isSuccess,
@@ -89,19 +86,21 @@ export function useSaleToggle() {
     setTxHash(null)
 
     if (type === 'presale') {
+      console.log('→ Toggle Presale pressed')
       togglePresale?.()
     }
+
     if (type === 'publicSale') {
+      console.log('→ Toggle Public Sale pressed')
       togglePublicSale?.()
     }
   }
 
   return {
     address,
-    merkleRoot,
-    revealed,
     presaleActive,
     publicSaleActive,
+    paused,
     error,
     loading: sendingPresale || sendingPublic || waitingTx,
     success: isSuccess,

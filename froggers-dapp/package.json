@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "dotenv": "^17.2.1",
+    "ethers": "^6.15.0",
     "fs": "^0.0.1-security",
     "keccak256": "^1.0.6",
     "merkletreejs": "^0.5.2",

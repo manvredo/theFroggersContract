@@ -3,6 +3,7 @@ pragma solidity ^0.8.4;
 
 import "erc721a/contracts/ERC721A.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol"; // MerkleProof importiert
 
 contract FroggersNFT is ERC721A, Ownable {
     // 🐸 Supply und Konfiguration
@@ -11,9 +12,16 @@ contract FroggersNFT is ERC721A, Ownable {
     bool public paused = true;
     bool public revealed = false;
 
+    // 🧪 Neue Sale-Flags
+    bool public presaleActive = false;
+    bool public publicSaleActive = false;
+
     // 🧪 URIs
     string public baseURI;
     string public hiddenURI;
+
+    // 🌿 Merkle Root sichtbar für Dapp & Scripts
+    bytes32 public merkleRoot;
 
     // 👥 Mint-Tracking
     mapping(address => uint256) public minted;
@@ -68,8 +76,32 @@ contract FroggersNFT is ERC721A, Ownable {
         mintPrice = _price;
     }
 
+    function setMerkleRoot(bytes32 _root) external onlyOwner {
+        merkleRoot = _root;
+    }
+
+    // 🧪 Toggle Presale/PublicSale – korrigierte Logik
+    function togglePresale() external onlyOwner {
+        presaleActive = !presaleActive;
+        if (presaleActive) {
+            publicSaleActive = false;
+        }
+    }
+
+    function togglePublicSale() external onlyOwner {
+        publicSaleActive = !publicSaleActive;
+        if (publicSaleActive) {
+            presaleActive = false;
+        }
+    }
+
     // 💸 Auszahlung
     function withdraw() external onlyOwner {
         payable(owner()).transfer(address(this).balance);
+    }
+
+    // 🌿 Optional: MerkleProof-Verifizierung für Allowlist
+    function verifyMerkleProof(bytes32[] calldata proof, address account) public view returns (bool) {
+        return MerkleProof.verify(proof, merkleRoot, keccak256(abi.encodePacked(account)));
     }
 }
