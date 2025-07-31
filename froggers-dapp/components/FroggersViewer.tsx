@@ -4,16 +4,12 @@ import { useEffect, useState } from 'react'
 import { useAccount, useReadContract } from 'wagmi'
 import abi from '@/lib/abi.json'
 
-export default function FroggersViewer({
-  contractAddress,
-}: {
-  contractAddress: `0x${string}`
-}) {
+export default function FroggersViewer({ contractAddress }: { contractAddress: `0x${string}` }) {
   const { address } = useAccount()
+
   const [tokenIds, setTokenIds] = useState<number[]>([])
-  const [tokenData, setTokenData] = useState<
-    { id: number; image: string; name: string; traits: any[] }[]
-  >([])
+  const [tokenData, setTokenData] = useState<{ id: number; image: string; name: string; traits: any[] }[]>([])
+  const [loading, setLoading] = useState(false)
 
   const { data: balance } = useReadContract({
     address: contractAddress,
@@ -23,31 +19,33 @@ export default function FroggersViewer({
     account: address,
   })
 
+  // 🧮 Token IDs ermitteln
   useEffect(() => {
     if (!balance || typeof balance !== 'bigint') return
-    const ids = Array.from({ length: Number(balance) }, (_, i) => i)
+    const ids = Array.from({ length: Number(balance) }, (_, i) => i) // ggf. +1 für One-Based
     setTokenIds(ids)
   }, [balance])
 
+  // 🖼️ Metadaten laden
   useEffect(() => {
     const fetchTokenData = async () => {
+      setLoading(true)
       const items = await Promise.all(
         tokenIds.map(async (id) => {
           try {
-            const res = await fetch(
-              `/api/token-uri?contract=${contractAddress}&id=${id}`
-            )
+            const res = await fetch(`/api/token-uri?contract=${contractAddress}&id=${id}`)
             const meta = await res.json()
             return {
               id,
-              image: meta.image ?? '/fallback.png',
+              image: meta.image ?? '/images/fallback.png',
               name: meta.name ?? `Frogger #${id}`,
               traits: meta.attributes ?? [],
             }
-          } catch {
+          } catch (err) {
+            console.warn(`[Viewer] Fehler bei Token ${id}`, err)
             return {
               id,
-              image: '/fallback.png',
+              image: '/images/fallback.png',
               name: `Frogger #${id}`,
               traits: [],
             }
@@ -55,6 +53,7 @@ export default function FroggersViewer({
         })
       )
       setTokenData(items)
+      setLoading(false)
     }
 
     if (tokenIds.length > 0) fetchTokenData()
@@ -65,6 +64,13 @@ export default function FroggersViewer({
       <h2 className="text-2xl font-bold text-center text-frogGreen mb-4">
         🖼️ Deine Froggers
       </h2>
+
+      {loading && (
+        <p className="text-center text-gray-400 mb-4 animate-pulse">
+          ⏳ Froggers werden geladen...
+        </p>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         {tokenData.map(({ id, image, name, traits }) => (
           <div key={id} className="bg-white p-4 rounded shadow text-center">
@@ -107,6 +113,12 @@ export default function FroggersViewer({
           </div>
         ))}
       </div>
+
+      {tokenData.length === 0 && !loading && (
+        <p className="text-center text-gray-400 mt-6">
+          📭 Keine Froggers gefunden – du hast noch nichts gemintet!
+        </p>
+      )}
     </div>
   )
 }

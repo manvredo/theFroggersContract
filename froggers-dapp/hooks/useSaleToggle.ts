@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import {
   useAccount,
   useContractRead,
@@ -7,7 +7,7 @@ import {
 } from 'wagmi'
 import abi from '@/lib/abi.json'
 
-const contractAddress = '0x31d57EDE517E027C2125B5Db8c54d28Db5ea0615' // Deine aktuelle Contract-Adresse
+const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`
 
 export function useSaleToggle() {
   const { address } = useAccount()
@@ -15,7 +15,7 @@ export function useSaleToggle() {
   const [txHash, setTxHash] = useState<string | null>(null)
   const [activeSale, setActiveSale] = useState<'presale' | 'publicSale' | null>(null)
 
-  // 🔁 Live sale status mit watch:true
+  // 🔁 Status-Reader
   const { data: presaleActive = false } = useContractRead({
     address: contractAddress,
     abi,
@@ -30,71 +30,74 @@ export function useSaleToggle() {
     watch: true,
   })
 
-  const { data: paused = true } = useContractRead({
+  const { data: paused = false } = useContractRead({
     address: contractAddress,
     abi,
     functionName: 'paused',
     watch: true,
   })
 
-  // 📝 Toggle Presale
+  // 🔀 Toggle-Funktionen
   const { write: togglePresale, isLoading: sendingPresale } = useContractWrite({
     address: contractAddress,
     abi,
     functionName: 'togglePresale',
     onSuccess(data) {
+      console.log('[Toggle] Presale TX:', data.hash)
       setTxHash(data.hash)
       setActiveSale('presale')
     },
     onError(err) {
+      console.error('[Toggle] Presale Fehler:', err)
       setError(err.message || 'Presale toggle failed')
     },
   })
 
-  // 📝 Toggle Public Sale
   const { write: togglePublicSale, isLoading: sendingPublic } = useContractWrite({
     address: contractAddress,
     abi,
     functionName: 'togglePublicSale',
     onSuccess(data) {
+      console.log('[Toggle] Public Sale TX:', data.hash)
       setTxHash(data.hash)
       setActiveSale('publicSale')
     },
     onError(err) {
+      console.error('[Toggle] Public Sale Fehler:', err)
       setError(err.message || 'Public Sale toggle failed')
     },
   })
 
-  // ⏳ Transaktion bestätigen
   const {
     isLoading: waitingTx,
     isSuccess,
-    isError: txFailed,
   } = useWaitForTransactionReceipt({
     hash: txHash,
     onSuccess() {
-      console.log(`✅ ${activeSale} toggled successfully`)
+      console.log(`[Toggle] ✅ ${activeSale} erfolgreich aktiviert`)
+      // Optional: auto-refresh logic hier oder Toast auslösen
     },
     onError(err) {
-      setError(err.message || 'Transaction failed during confirmation')
+      console.error('[Toggle] TX Receipt Fehler:', err)
+      setError(err.message || 'Toggle-Transaction failed')
     },
   })
 
-  // 🕹️ Toggle trigger
-  function toggleSale(type: 'presale' | 'publicSale') {
+  // 🕹️ Ausgelöstes Toggle
+  const toggleSale = useCallback((type: 'presale' | 'publicSale') => {
     setError('')
     setTxHash(null)
 
     if (type === 'presale') {
-      console.log('→ Toggle Presale pressed')
+      console.log('→ 🟢 Presale toggle triggered')
       togglePresale?.()
     }
 
     if (type === 'publicSale') {
-      console.log('→ Toggle Public Sale pressed')
+      console.log('→ 🟣 Public Sale toggle triggered')
       togglePublicSale?.()
     }
-  }
+  }, [togglePresale, togglePublicSale])
 
   return {
     address,

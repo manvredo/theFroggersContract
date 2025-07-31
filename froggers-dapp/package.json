@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "chalk": "^4.1.2",
     "dotenv": "^17.2.1",
     "ethers": "^6.15.0",
     "fs": "^0.0.1-security",
@@ -21,11 +22,8 @@
     "wagmi": "^2.16.0"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "@tailwindcss/postcss": "^4.1.11",
+    "autoprefixer": "^10.4.21",
+    "tailwindcss": "^4"
   }
 }

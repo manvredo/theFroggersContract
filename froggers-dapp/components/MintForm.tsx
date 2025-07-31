@@ -3,60 +3,64 @@
 import { useState, useEffect } from 'react'
 import { getProofForAddress } from '@/utils/getMerkleProof'
 import { useSaleToggle } from '@/hooks/useSaleToggle'
-// Optional: wagmi imports für Contract Call
-// import { useContractWrite } from 'wagmi'
+// Optional: wagmi / viem Contract Call imports
 
 export default function MintForm({ address }: { address: string }) {
   const [status, setStatus] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const {
-    presaleActive,
-    publicSaleActive,
-  } = useSaleToggle()
+  const { presaleActive, publicSaleActive } = useSaleToggle()
+
+  useEffect(() => {
+    setStatus('')
+  }, [address])
 
   const handleMint = async () => {
     setLoading(true)
     setStatus('⏳ Mint wird vorbereitet...')
 
-    // PRESALE → mit Proof
-    if (presaleActive) {
-      const proof = getProofForAddress(address)
+    try {
+      if (presaleActive) {
+        const proof = getProofForAddress(address)
 
-      if (!proof) {
-        setStatus('🚫 Du bist nicht auf der Whitelist.')
-        setLoading(false)
+        if (!proof || proof.length === 0) {
+          setStatus('🚫 Du bist nicht auf der Whitelist.')
+          setLoading(false)
+          return
+        }
+
+        // Contract Call für presaleMint
+        // await writeContract({ address: ..., functionName: 'presaleMint', args: [proof], account: address })
+
+        setTimeout(() => {
+          setStatus('✅ Presale Mint erfolgreich!')
+          setLoading(false)
+        }, 1500)
+
         return
       }
 
-      // TODO: Contract Call für presaleMint mit Proof
-      // mint.write({ args: [proof] })
+      if (publicSaleActive) {
+        // Contract Call für publicMint
+        // await writeContract({ address: ..., functionName: 'publicMint', args: [1], account: address })
 
-      setTimeout(() => {
-        setStatus('✅ Presale Mint erfolgreich!')
-        setLoading(false)
-      }, 1500) // Simulation
-      return
+        setTimeout(() => {
+          setStatus('✅ Public Mint erfolgreich!')
+          setLoading(false)
+        }, 1500)
+
+        return
+      }
+
+      setStatus('🔒 Momentan ist kein Sale aktiv.')
+    } catch (err) {
+      console.error('[MintForm] ❌ Mint-Fehler:', err)
+      setStatus('❌ Fehler beim Mint-Vorgang.')
+    } finally {
+      setLoading(false)
     }
-
-    // PUBLIC SALE → ohne Proof
-    if (publicSaleActive) {
-      // TODO: Contract Call für public mint
-      // mint.write({ args: [amount] })
-
-      setTimeout(() => {
-        setStatus('✅ Public Mint erfolgreich!')
-        setLoading(false)
-      }, 1500) // Simulation
-      return
-    }
-
-    // Kein Sale aktiv
-    setStatus('🔒 Momentan ist kein Sale aktiv.')
-    setLoading(false)
   }
 
-  // 🧾 Info über Sale-Modus
   const getSaleLabel = () => {
     if (presaleActive) return 'Presale aktiv – Whitelist erforderlich'
     if (publicSaleActive) return 'Public Sale aktiv – jeder darf minten'
@@ -80,7 +84,11 @@ export default function MintForm({ address }: { address: string }) {
         {loading ? 'Croaking...' : 'Mint starten'}
       </button>
 
-      {status && <p className="mt-2 text-sm text-center">{status}</p>}
+      {status && (
+        <p className="mt-2 text-sm text-center text-frogGreen animate-fadeIn">
+          {status}
+        </p>
+      )}
     </div>
   )
 }

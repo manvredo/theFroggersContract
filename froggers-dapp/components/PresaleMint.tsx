@@ -1,34 +1,99 @@
-import { useState } from 'react'
-import { usePresaleMint } from '@/hooks/usePresaleMint'
+'use client'
 
-export default function PresaleMint({ merkleRoot, userProof }: { merkleRoot: string, userProof: string[] }) {
-  const [amount, setAmount] = useState(1)
-  const { mintPresale, loading, error } = usePresaleMint()
+import { useState, useEffect } from 'react'
+import { getProofForAddress } from '@/utils/getMerkleProof'
+import { useSaleToggle } from '@/hooks/useSaleToggle'
+// import { writeContract } from 'wagmi' // Optional: smart contract call
+
+export default function MintForm({ address }: { address: string }) {
+  const [status, setStatus] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const { presaleActive, publicSaleActive } = useSaleToggle()
+
+  // 🧹 Reset Status on wallet change
+  useEffect(() => {
+    setStatus('')
+  }, [address])
+
+  const handleMint = async () => {
+    setLoading(true)
+    setStatus('⏳ Mint wird vorbereitet...')
+
+    try {
+      if (presaleActive) {
+        const proof = getProofForAddress(address)
+
+        if (!proof || proof.length === 0) {
+          setStatus('🚫 Du bist nicht auf der Whitelist.')
+          setLoading(false)
+          return
+        }
+
+        // 🔐 Contract call here (e.g. wagmi)
+        // await writeContract({
+        //   address: contractAddress,
+        //   abi: contractAbi,
+        //   functionName: 'presaleMint',
+        //   args: [proof],
+        //   account: address,
+        // })
+
+        setTimeout(() => {
+          setStatus('✅ Presale Mint erfolgreich!')
+          setLoading(false)
+        }, 1500)
+        return
+      }
+
+      if (publicSaleActive) {
+        // Contract call for public mint
+        // await writeContract({ ... })
+
+        setTimeout(() => {
+          setStatus('✅ Public Mint erfolgreich!')
+          setLoading(false)
+        }, 1500)
+        return
+      }
+
+      setStatus('🔒 Momentan ist kein Sale aktiv.')
+    } catch (err) {
+      console.error('[presaleMint] ❌ Fehler beim Mint:', err)
+      setStatus('❌ Fehler beim Mint-Vorgang.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const getSaleLabel = () => {
+    if (presaleActive) return 'Presale aktiv – Whitelist erforderlich'
+    if (publicSaleActive) return 'Public Sale aktiv – jeder darf minten'
+    return 'Kein Sale aktiv – warte auf Start'
+  }
 
   return (
-    <div className="my-4 p-4 border rounded bg-white">
-      <h2 className="text-xl font-semibold mb-2">🌿 Presale Mint</h2>
-      <p className="mb-2">Merkle Root: {merkleRoot || 'nicht gesetzt'}</p>
+    <div className="p-6 border rounded bg-white text-glibberGray shadow-lg flex flex-col gap-4 items-center">
+      <h2 className="text-lg font-semibold">🐸 Mint dein Frogger</h2>
+      <p className="text-sm font-mono text-center">{address}</p>
 
-      <div className="flex items-center gap-2 mb-4">
-        <input
-          type="number"
-          min="1"
-          value={amount}
-          onChange={(e) => setAmount(Number(e.target.value))}
-          className="border px-2 py-1 w-16"
-        />
-        <button
-          onClick={() => mintPresale(amount, userProof)}
-          disabled={loading}
-          className="btn-primary"
-        >
-          {loading ? '🔄 Minting...' : `Mint ${amount} NFT${amount > 1 ? 's' : ''}`}
-        </button>
-      </div>
+      <p className="text-sm text-green-700 bg-green-100 px-3 py-2 rounded">
+        {getSaleLabel()}
+      </p>
 
-      {error && <p className="text-red-600">❌ {error}</p>}
+      <button
+        onClick={handleMint}
+        disabled={loading}
+        className="bg-frogGreen text-white px-6 py-2 rounded hover:brightness-110 disabled:opacity-50"
+      >
+        {loading ? 'Croaking...' : 'Mint starten'}
+      </button>
+
+      {status && (
+        <p className="mt-2 text-sm text-center text-frogGreen animate-fadeIn">
+          {status}
+        </p>
+      )}
     </div>
   )
 }
-

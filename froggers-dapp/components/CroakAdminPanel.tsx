@@ -19,128 +19,121 @@ export default function CroakAdminPanel({ contractAddress }: Props) {
   const [baseURI, setBaseURI] = useState('')
   const [hiddenURI, setHiddenURI] = useState('')
   const [merkleRoot, setMerkleRoot] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  // 🔄 Lade aktuellen Contract-Status
   const loadStatus = async () => {
     try {
-      const owner = await readContract({
-        address: contractAddress,
-        abi,
-        functionName: 'owner',
-      })
+      const owner = await readContract({ address: contractAddress, abi, functionName: 'owner' })
       setIsOwner(owner.toLowerCase() === address?.toLowerCase())
 
-      const supply = await readContract({
-        address: contractAddress,
-        abi,
-        functionName: 'totalSupply',
-      })
+      const supply = await readContract({ address: contractAddress, abi, functionName: 'totalSupply' })
       setTotalMinted(Number(supply))
 
-      const isRevealed = await readContract({
-        address: contractAddress,
-        abi,
-        functionName: 'revealed',
-      })
+      const isRevealed = await readContract({ address: contractAddress, abi, functionName: 'revealed' })
       setRevealed(Boolean(isRevealed))
 
-      const isPresale = await readContract({
-        address: contractAddress,
-        abi,
-        functionName: 'presaleActive',
-      })
+      const isPresale = await readContract({ address: contractAddress, abi, functionName: 'presaleActive' })
       setPresaleActive(Boolean(isPresale))
 
-      const isPublic = await readContract({
-        address: contractAddress,
-        abi,
-        functionName: 'publicSaleActive',
-      })
+      const isPublic = await readContract({ address: contractAddress, abi, functionName: 'publicSaleActive' })
       setPublicSaleActive(Boolean(isPublic))
     } catch (err) {
-      console.error('🔴 Fehler beim Laden des Contract-Status:', err)
+      console.error('[AdminPanel] 🔴 Status-Fehler:', err)
     }
   }
 
   useEffect(() => {
-    if (isConnected && address) {
-      loadStatus()
-    }
+    if (isConnected && address) loadStatus()
   }, [isConnected, address, contractAddress])
 
   const triggerReveal = async () => {
+    setLoading(true)
     try {
       await writeContract({
         address: contractAddress,
         abi,
         functionName: 'reveal',
         account: address,
+        // gasLimit: 100_000 // optional
       })
       alert('👁️ Reveal wurde ausgelöst!')
+      setRevealed(true)
       await loadStatus()
     } catch (err) {
-      console.error('🔴 Reveal-Fehler:', err)
+      console.error('[AdminPanel] 🔴 Reveal-Fehler:', err)
       alert('Fehler beim Reveal!')
+    } finally {
+      setLoading(false)
     }
   }
 
   const updateURI = async (type: 'base' | 'hidden') => {
     const uri = type === 'base' ? baseURI : hiddenURI
     const fn = type === 'base' ? 'setBaseURI' : 'setHiddenURI'
+    setLoading(true)
     try {
       await writeContract({
         address: contractAddress,
         abi,
         functionName: fn,
         args: [uri],
-        account: address,
+        account: address
       })
-      alert(`🔗 ${fn} wurde gesetzt!`)
+      alert(`🔗 ${fn} erfolgreich gesetzt!`)
+      // localStorage.setItem(fn, uri) // optional persistieren
       await loadStatus()
     } catch (err) {
-      console.error(`🔴 URI-Set-Fehler (${fn}):`, err)
-      alert(`Fehler beim Setzen der ${fn}`)
+      console.error(`[AdminPanel] 🔴 ${fn}-Fehler:`, err)
+      alert(`Fehler beim Setzen von ${fn}`)
+    } finally {
+      setLoading(false)
     }
   }
 
   const updateMerkleRoot = async () => {
+    setLoading(true)
     try {
       await writeContract({
         address: contractAddress,
         abi,
         functionName: 'setMerkleRoot',
         args: [merkleRoot],
-        account: address,
+        account: address
       })
-      alert('🌿 MerkleRoot wurde gesetzt!')
+      alert('🌿 MerkleRoot gesetzt!')
       await loadStatus()
     } catch (err) {
-      console.error('🔴 MerkleRoot-Fehler:', err)
+      console.error('[AdminPanel] 🔴 MerkleRoot-Fehler:', err)
       alert('Fehler beim MerkleRoot-Setzen!')
+    } finally {
+      setLoading(false)
     }
   }
 
   const toggleSale = async (type: 'presale' | 'public') => {
     const fn = type === 'presale' ? 'togglePresale' : 'togglePublicSale'
+    setLoading(true)
     try {
       await writeContract({
         address: contractAddress,
         abi,
         functionName: fn,
-        account: address,
+        account: address
       })
-      alert(`🔁 ${type === 'presale' ? 'Presale' : 'Public Sale'} toggled!`)
+      alert(`🔁 ${type === 'presale' ? 'Presale' : 'Public Sale'} getoggelt!`)
       await loadStatus()
     } catch (err) {
-      console.error('🔴 Sale-Toggle-Fehler:', err)
+      console.error('[AdminPanel] 🔴 Sale-Toggle-Fehler:', err)
       alert('Fehler beim Sale-Toggle!')
+    } finally {
+      setLoading(false)
     }
   }
 
   if (!isOwner) {
     return (
       <div className="text-red-600 text-center mt-6">
-        ❌ Du bist nicht der Contract Owner
+        ❌ Kein Zugriff: Du bist nicht der Contract-Owner
       </div>
     )
   }
@@ -156,13 +149,15 @@ export default function CroakAdminPanel({ contractAddress }: Props) {
 
       <button
         onClick={triggerReveal}
-        className="bg-white text-frogGreen py-2 px-4 rounded font-semibold hover:brightness-110 w-full"
+        disabled={loading}
+        className={`py-2 px-4 rounded w-full font-semibold ${loading ? 'opacity-50' : 'bg-white text-frogGreen hover:brightness-110'}`}
       >
         👁️ Reveal auslösen
       </button>
 
+      {/* Base URI */}
       <div>
-        <label className="block text-sm mt-4">🌐 BaseURI setzen:</label>
+        <label className="block text-sm mt-4">🌐 BaseURI:</label>
         <input
           type="text"
           value={baseURI}
@@ -172,14 +167,16 @@ export default function CroakAdminPanel({ contractAddress }: Props) {
         />
         <button
           onClick={() => updateURI('base')}
-          className="mt-2 w-full bg-white text-frogGreen py-2 rounded font-semibold hover:brightness-110"
+          disabled={loading}
+          className={`mt-2 w-full py-2 rounded font-semibold ${loading ? 'opacity-50' : 'bg-white text-frogGreen hover:brightness-110'}`}
         >
           🔗 BaseURI speichern
         </button>
       </div>
 
+      {/* Hidden URI */}
       <div>
-        <label className="block text-sm mt-4">🕵️ HiddenURI setzen:</label>
+        <label className="block text-sm mt-4">🕵️ HiddenURI:</label>
         <input
           type="text"
           value={hiddenURI}
@@ -189,14 +186,16 @@ export default function CroakAdminPanel({ contractAddress }: Props) {
         />
         <button
           onClick={() => updateURI('hidden')}
-          className="mt-2 w-full bg-white text-frogGreen py-2 rounded font-semibold hover:brightness-110"
+          disabled={loading}
+          className={`mt-2 w-full py-2 rounded font-semibold ${loading ? 'opacity-50' : 'bg-white text-frogGreen hover:brightness-110'}`}
         >
           🕸️ HiddenURI speichern
         </button>
       </div>
 
+      {/* Merkle Root */}
       <div>
-        <label className="block text-sm mt-4">🌿 MerkleRoot setzen:</label>
+        <label className="block text-sm mt-4">🌿 MerkleRoot:</label>
         <input
           type="text"
           value={merkleRoot}
@@ -206,26 +205,20 @@ export default function CroakAdminPanel({ contractAddress }: Props) {
         />
         <button
           onClick={updateMerkleRoot}
-          className="mt-2 w-full bg-white text-frogGreen py-2 rounded font-semibold hover:brightness-110"
+          disabled={loading}
+          className={`mt-2 w-full py-2 rounded font-semibold ${loading ? 'opacity-50' : 'bg-white text-frogGreen hover:brightness-110'}`}
         >
           🔒 MerkleRoot speichern
         </button>
       </div>
 
+      {/* Sale Toggles */}
       <div className="flex gap-2 mt-4">
         <button
           onClick={() => toggleSale('presale')}
-          className="bg-white text-frogGreen py-2 px-4 rounded font-semibold w-1/2 hover:brightness-110"
+          disabled={loading}
+          className={`py-2 px-4 rounded font-semibold w-1/2 ${loading ? 'opacity-50' : 'bg-white text-frogGreen hover:brightness-110'}`}
         >
           🔁 Presale toggeln
         </button>
         <button
-          onClick={() => toggleSale('public')}
-          className="bg-white text-frogGreen py-2 px-4 rounded font-semibold w-1/2 hover:brightness-110"
-        >
-          🔁 Public Sale toggeln
-        </button>
-      </div>
-    </div>
-  )
-}

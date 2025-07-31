@@ -1,3 +1,5 @@
+'use client'
+
 import { useEffect, useState } from 'react'
 import { useSaleToggle } from '@/hooks/useSaleToggle'
 
@@ -12,14 +14,8 @@ export default function MintControls() {
     toggleSale,
   } = useSaleToggle()
 
-  const [mounted, setMounted] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  // ⛳ Dynamische Statusmeldung
   useEffect(() => {
     if (presaleActive) {
       setStatusMessage('🌿 Presale ist aktiviert 🟢')
@@ -31,10 +27,10 @@ export default function MintControls() {
   }, [presaleActive, publicSaleActive])
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-bold">🐸 Froggers NFT Minting</h2>
+    <div className="space-y-4 bg-white p-4 rounded shadow-md border border-gray-200">
+      <h2 className="text-xl font-bold text-frogGreen">🐸 Froggers NFT Minting</h2>
 
-      <p>👤 Connected as: {mounted && address ? address : '—'}</p>
+      <p>👤 Verbunden als: <span className="font-mono">{address ?? '—'}</span></p>
 
       <div className="space-y-1">
         <p>👁️ Reveal active: {revealed ? '✅ Yes' : '❌ No'}</p>
@@ -48,26 +44,26 @@ export default function MintControls() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2 mt-2">
         <button
           onClick={() => toggleSale('presale')}
           disabled={loading}
-          className="btn-secondary"
+          className={`bg-frogGreen text-white px-4 py-2 rounded font-semibold hover:brightness-110 disabled:opacity-50`}
         >
-          {loading ? '🔄 Updating...' : '🔁 Toggle Presale'}
+          {loading ? '🔄 Aktualisiere...' : '🔁 Toggle Presale'}
         </button>
         <button
           onClick={() => toggleSale('publicSale')}
           disabled={loading}
-          className="btn-secondary"
+          className={`bg-frogGreen text-white px-4 py-2 rounded font-semibold hover:brightness-110 disabled:opacity-50`}
         >
-          {loading ? '🔄 Updating...' : '🔁 Toggle Public Sale'}
+          {loading ? '🔄 Aktualisiere...' : '🔁 Toggle Public Sale'}
         </button>
       </div>
 
       {error && (
-        <div className="text-red-600 bg-red-100 p-3 rounded">
-          <strong>Error:</strong> {error}
+        <div className="text-red-600 bg-red-100 p-3 rounded mt-3">
+          <strong>Fehler:</strong> {error}
         </div>
       )}
     </div>

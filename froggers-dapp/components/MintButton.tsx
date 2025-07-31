@@ -1,18 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { getProofForAddress } from '@/utils/getMerkleProof'
 import { useSaleToggle } from '@/hooks/useSaleToggle'
-// Optional: wagmi.write() oder viem-Integration fürs Contract-Mint
+// Optional: wagmi.writeContract oder viem.executeContract
 
 export default function MintButton({ address }: { address: string }) {
   const [status, setStatus] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const {
-    presaleActive,
-    publicSaleActive,
-  } = useSaleToggle()
+  const { presaleActive, publicSaleActive } = useSaleToggle()
+
+  // 🧹 Reset Status wenn Wallet wechselt
+  useEffect(() => {
+    setStatus('')
+  }, [address])
 
   const handleMint = async () => {
     setLoading(true)
@@ -22,43 +24,44 @@ export default function MintButton({ address }: { address: string }) {
       if (presaleActive) {
         const proof = getProofForAddress(address)
 
-        if (!proof) {
+        if (!proof || proof.length === 0) {
           setStatus('🚫 Du bist nicht auf der Whitelist.')
           setLoading(false)
           return
         }
 
-        // TODO: Contract Call z. B. presaleMint(proof)
-        // mint.write({ args: [proof] })
+        // 🧪 Hier dein Smart Contract Call z. B. mit wagmi:
+        // await writeContract({ address: ..., functionName: 'presaleMint', args: [proof] })
 
         setTimeout(() => {
           setStatus('✅ Presale Mint erfolgreich!')
           setLoading(false)
         }, 1500)
+
         return
       }
 
       if (publicSaleActive) {
-        // TODO: Contract Call z. B. publicMint(amount)
-        // mint.write({ args: [1] })
+        // 🧪 publicMint Call → z. B. mit amount: 1
+        // await writeContract({ address: ..., functionName: 'publicMint', args: [1] })
 
         setTimeout(() => {
           setStatus('✅ Public Mint erfolgreich!')
           setLoading(false)
         }, 1500)
+
         return
       }
 
       setStatus('🔒 Kein Sale aktiv – warte auf den Start.')
       setLoading(false)
     } catch (err) {
-      console.error(err)
+      console.error('[MintButton] ❌ Mint-Vorgang fehlgeschlagen:', err)
       setStatus('❌ Fehler beim Mint-Vorgang.')
       setLoading(false)
     }
   }
 
-  // 💬 Dynamische Sale-Info
   const saleLabel = presaleActive
     ? 'Presale aktiv – Whitelist erforderlich'
     : publicSaleActive
@@ -82,7 +85,11 @@ export default function MintButton({ address }: { address: string }) {
         {loading ? 'Croaking...' : 'Mint starten'}
       </button>
 
-      {status && <p className="mt-2 text-sm text-center">{status}</p>}
+      {status && (
+        <p className="mt-2 text-sm text-center text-frogGreen animate-fadeIn">
+          {status}
+        </p>
+      )}
     </div>
   )
 }
