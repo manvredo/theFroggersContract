@@ -4,10 +4,10 @@ async function main() {
   const [signer] = await hre.ethers.getSigners();
   console.log("🔍 Aktueller Signer:", signer.address);
 
-  const contractAddress = "0x932ad1fB6f33Ce894E42f8cF2027E84D5B4b228E"; // ← deine Froggers-Adresse einsetzen!
-  const Froggers01 = await hre.ethers.getContractAt("Froggers01", contractAddress);
+  const contractAddress = "0x932ad1fB6f33Ce894E42f8cF2027E84D5B4b228E"; // ← deine FroggersNFT-Adresse einsetzen!
+  const FroggersNFT = await hre.ethers.getContractAt("FroggersNFT", contractAddress);
 
-  const owner = await Froggers01.owner();
+  const owner = await FroggersNFT.owner();
   console.log("👑 Contract Owner laut Blockchain:", owner);
 
   if (signer.address.toLowerCase() === owner.toLowerCase()) {

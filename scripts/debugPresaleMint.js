@@ -35,3 +35,4 @@ main().catch((err) => {
   console.error("❌ Fehler beim Debug-Mint:", err);
   process.exitCode = 1;
 });
+

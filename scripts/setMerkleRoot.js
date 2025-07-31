@@ -4,7 +4,7 @@ const path = require("path");
 
 async function main() {
   const contractAddress = "0x932ad1fB6f33Ce894E42f8cF2027E84D5B4b228E"; // ← einsetzen!
-  const Froggers = await ethers.getContractAt("Froggers01", contractAddress);
+  const FroggersNFT = await ethers.getContractAt("FroggersNFT", contractAddress);
 
   const rootPath = path.join(__dirname, "merkleRoot.txt");
   const rawRoot = fs.readFileSync(rootPath, "utf-8").trim();
@@ -12,7 +12,7 @@ async function main() {
   const merkleRoot = "0x" + rawRoot.replace(/^0x/, ""); // sicherstellen, dass 0x da ist
   console.log("🔑 Merkle Root wird gesetzt:", merkleRoot);
 
-  const tx = await Froggers.setMerkleRoot(merkleRoot);
+  const tx = await FroggersNFT.setMerkleRoot(merkleRoot);
   await tx.wait();
 
   console.log("✅ Merkle Root erfolgreich gesetzt!");

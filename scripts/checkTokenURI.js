@@ -1,17 +1,17 @@
 const hre = require("hardhat");
 
 async function main() {
-  const contractAddress = "0x932ad1fB6f33Ce894E42f8cF2027E84D5B4b228E"; // ← deine Froggers-Adresse!
-  const Froggers01 = await hre.ethers.getContractAt("Froggers01", contractAddress);
+  const contractAddress = "0x932ad1fB6f33Ce894E42f8cF2027E84D5B4b228E"; // ← deine FroggersNFT-Adresse
+  const FroggersNFT = await hre.ethers.getContractAt("FroggersNFT", contractAddress);
 
-  const tokenId = 0; // ← ändern auf 1, 2 etc. falls du weitere minted hast
+  const tokenId = 0; // ← ändern auf 1, 2, etc. je nachdem welche Token du prüfen willst
 
   console.log(`🔍 Frage tokenURI für Token #${tokenId} ab ...`);
 
-  const tokenURI = await Froggers01.tokenURI(tokenId);
+  const tokenURI = await FroggersNFT.tokenURI(tokenId);
   console.log("📦 tokenURI gefunden:", tokenURI);
 
-  // Wenn IPFS-Link → direktes Vorschau-Format ergänzen
+  // Wenn IPFS-Link → direkte Vorschau ergänzen
   if (tokenURI.startsWith("ipfs://")) {
     const httpURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
     console.log("🌐 IPFS-Vorschau-Link:", httpURI);

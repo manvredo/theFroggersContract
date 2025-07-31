@@ -4,8 +4,8 @@ const path = require("path");
 
 async function main() {
   const [signer] = await hre.ethers.getSigners();
-  const contractAddress = "0x932ad1fB6f33Ce894E42f8cF2027E84D5B4b228E"; // ← deine Froggers-Adresse!
-  const Froggers01 = await hre.ethers.getContractAt("Froggers01", contractAddress);
+  const contractAddress = "0x932ad1fB6f33Ce894E42f8cF2027E84D5B4b228E"; // ← deine FroggersNFT-Adresse!
+  const FroggersNFT = await hre.ethers.getContractAt("FroggersNFT", contractAddress);
 
   const quantity = 1;
   const presalePrice = hre.ethers.parseEther("0.005"); // aus deinem Contract
@@ -25,7 +25,7 @@ async function main() {
   console.log("🚀 Starte Presale-Mint mit Menge:", quantity);
 
   // 🐸 Mint ausführen
-  const tx = await Froggers01.presaleMint(quantity, proof, {
+  const tx = await FroggersNFT.presaleMint(quantity, proof, {
     value: totalPrice,
     gasLimit: 500000
   });
