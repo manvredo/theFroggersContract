@@ -3,16 +3,16 @@ pragma solidity ^0.8.4;
 
 import "erc721a/contracts/ERC721A.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol"; // MerkleProof importiert
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 contract FroggersNFT is ERC721A, Ownable {
-    // 🐸 Supply und Konfiguration
+    // 🐸 Supply & Config
     uint256 public maxSupply = 5555;
     uint256 public mintPrice = 0.02 ether;
     bool public paused = true;
     bool public revealed = false;
 
-    // 🧪 Neue Sale-Flags
+    // 🧪 Sale-Status
     bool public presaleActive = false;
     bool public publicSaleActive = false;
 
@@ -20,7 +20,7 @@ contract FroggersNFT is ERC721A, Ownable {
     string public baseURI;
     string public hiddenURI;
 
-    // 🌿 Merkle Root sichtbar für Dapp & Scripts
+    // 🌿 MerkleRoot für Whitelist
     bytes32 public merkleRoot;
 
     // 👥 Mint-Tracking
@@ -28,15 +28,10 @@ contract FroggersNFT is ERC721A, Ownable {
 
     constructor(string memory _hiddenURI) ERC721A("FroggersNFT", "FROG") Ownable(msg.sender) {
         hiddenURI = _hiddenURI;
-        baseURI = "https://vertical-plum-alligator.myfilebase.com/ipfs/QmPoMcpNTFk7UKCQT1fg8cUzdm4u41mjMnakyHjTaQPHhL/";
+        baseURI = "https://thefrogger.myfilebase.com/ipfs/QmZ1MMmBjTGig84VaZKr1FYxoMepyQHGb4wuJxYWyi9vns/";
     }
 
-    // 🧭 Basis-URI
-    function _baseURI() internal view override returns (string memory) {
-        return baseURI;
-    }
-
-    // 🔍 tokenURI: Platzhalter oder echte JSON
+    // 🔍 tokenURI mit Reveal-Logik
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         require(_exists(tokenId), "Token does not exist");
         if (!revealed) {
@@ -45,7 +40,7 @@ contract FroggersNFT is ERC721A, Ownable {
         return string(abi.encodePacked(baseURI, _toString(tokenId), ".json"));
     }
 
-    // 🎟️ Öffentliche Mint-Funktion
+    // 🎟️ Public Mint
     function mint(uint256 amount) external payable {
         require(!paused, "Minting is paused");
         require(totalSupply() + amount <= maxSupply, "Max supply reached");
@@ -80,7 +75,7 @@ contract FroggersNFT is ERC721A, Ownable {
         merkleRoot = _root;
     }
 
-    // 🧪 Toggle Presale/PublicSale – korrigierte Logik
+    // 🧪 Sale-Status togglen mit gegenseitigem Ausschluss
     function togglePresale() external onlyOwner {
         presaleActive = !presaleActive;
         if (presaleActive) {
@@ -100,7 +95,7 @@ contract FroggersNFT is ERC721A, Ownable {
         payable(owner()).transfer(address(this).balance);
     }
 
-    // 🌿 Optional: MerkleProof-Verifizierung für Allowlist
+    // 🌿 Whitelist-Verifizierung über MerkleProof
     function verifyMerkleProof(bytes32[] calldata proof, address account) public view returns (bool) {
         return MerkleProof.verify(proof, merkleRoot, keccak256(abi.encodePacked(account)));
     }

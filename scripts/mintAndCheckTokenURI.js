@@ -18,7 +18,7 @@ async function main() {
 
   const ipfsHash = uri.replace("ipfs://", "");
   console.log(`🌐 IPFS Preview: https://ipfs.filebase.io/ipfs/${ipfsHash}`);
-  console.log(`🧭 OpenSea: https://testnets.opensea.io/assets/sepolia/${contractAddress}/${tokenId}`);
+  console.log(`🧭 OpenSea: https://opensea.io/assets/matic/${contractAddress}/${tokenId}`);
 }
 
 main().catch((error) => {

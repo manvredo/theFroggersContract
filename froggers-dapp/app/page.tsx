@@ -1,31 +1,31 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { useAccount, useConnect } from 'wagmi'
-import { injected } from '@wagmi/connectors'
+import { useState, useEffect } from 'react';
+import { useAccount, useConnect } from 'wagmi';
+import { injected } from '@wagmi/connectors';
 
-import FroggersViewer from '@/components/FroggersViewer'
-import MintControls from '@/components/MintControls'
-import PresaleMint from '@/components/PresaleMint'
-import { getProofForAddress } from '@/utils/getMerkleProof'
-import proofs from '@/data/proofs.json'
+import FroggersViewer from '@/components/FroggersViewer';
+import MintControls from '@/components/MintControls';
+import PresaleMint from '@/components/PresaleMint';
+import { getProofForAddress } from '@/utils/getMerkleProof';
+import proofs from '@/data/proofs.json';
 
 type ProofMap = {
-  root: string
-  [address: string]: { proof: string[] } | string
-}
+  root: string;
+  [address: string]: { proof: string[] } | string;
+};
 
-const typedProofs = proofs as ProofMap
-const merkleRoot = typedProofs.root as string
+const typedProofs = proofs as ProofMap;
+const merkleRoot = typedProofs.root as string;
 
 export default function Home() {
-  const { address, isConnected } = useAccount()
-  const { connect, isLoading: connectLoading } = useConnect()
-  const [isClient, setIsClient] = useState(false)
+  const { address, isConnected } = useAccount();
+  const { connect, isLoading: connectLoading } = useConnect();
+  const [isClient, setIsClient] = useState(false);
 
-  useEffect(() => setIsClient(true), [])
+  useEffect(() => setIsClient(true), []);
 
-  const userProof = isConnected && address ? getProofForAddress(address) ?? [] : []
+  const userProof = isConnected && address ? getProofForAddress(address) ?? [] : [];
 
   return (
     <main className="container mx-auto p-4">
@@ -47,5 +47,5 @@ export default function Home() {
         </>
       )}
     </main>
-  )
+  );
 }
