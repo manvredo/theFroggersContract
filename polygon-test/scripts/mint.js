@@ -1,42 +1,43 @@
-const { ethers } = require("hardhat");
+const hre = require("hardhat");
 
 async function main() {
-  // Signer abrufen
-  const [deployer] = await ethers.getSigners();
-  console.log("Minting mit Account:", deployer.address);
-
-  // 🔒 Feste Contract-Adresse direkt hier eintragen:
-  const contractAddress = "0xaEe9C8cB579AC1c6992d2Cf20e20Ba9842bd160"; // <- Ersetzen mit deiner tatsächlichen Adresse
-  console.log("Contract-Adresse (fest):", contractAddress);
-
-  // Contract holen – Contract-Namen korrekt setzen
-  const nftContract = await ethers.getContractAt("FroggersNFT", contractAddress);
-
-  // Anzahl der Tokens zum Minten
-  const quantity = 1;
-
-  // Mint-Preis abrufen und casten
-  let mintPrice = await nftContract.mintPrice();
-  if (!ethers.BigNumber.isBigNumber(mintPrice)) {
-    mintPrice = ethers.BigNumber.from(mintPrice);
-  }
-
-  const totalCost = mintPrice.mul(quantity);
-
-  console.log(`Mintpreis pro Token: ${ethers.utils.formatEther(mintPrice)} ETH`);
-  console.log(`Gesamtpreis für ${quantity} Token(s): ${ethers.utils.formatEther(totalCost)} ETH`);
-
-  // Mint-Transaktion ausführen
-  const tx = await nftContract.mint(quantity, {
-    value: totalCost
-  });
-
-  console.log("⏳ Mint-Transaktion gesendet. TX Hash:", tx.hash);
-  await tx.wait();
-  console.log("✅ Mint erfolgreich abgeschlossen!");
+    const contractAddress = "0x2A3059b568b7020b04B4f49cd3320AD19c9FcDde";
+    
+    const [deployer] = await hre.ethers.getSigners();
+    console.log("🐸 Minting mit Account:", deployer.address);
+    
+    const FroggersNFT = await hre.ethers.getContractAt("FroggersNFT", contractAddress);
+    
+    try {
+        console.log("📊 Aktueller Supply:", await FroggersNFT.totalSupply().then(n => n.toString()));
+        
+        // Mint erste 10 Token als Test
+        console.log("🚀 Minte ersten Batch (10 Token)...");
+        const tx = await FroggersNFT.mint(deployer.address, 10);
+        console.log("⏳ Transaction gesendet:", tx.hash);
+        
+        await tx.wait();
+        console.log("✅ Minting erfolgreich!");
+        
+        console.log("📊 Neuer Supply:", await FroggersNFT.totalSupply().then(n => n.toString()));
+        console.log("🎨 Token URI 0:", await FroggersNFT.tokenURI(0));
+        console.log("🎨 Token URI 1:", await FroggersNFT.tokenURI(1));
+        
+    } catch (error) {
+        console.error("❌ Minting Fehler:", error.message);
+        
+        // Prüfe ob mint() Funktion existiert
+        console.log("\n🔍 Verfügbare Funktionen checken...");
+        // Versuche verschiedene Mint-Funktionen
+        try {
+            console.log("Versuche safeMint...");
+            const tx = await FroggersNFT.safeMint(deployer.address);
+            await tx.wait();
+            console.log("✅ safeMint erfolgreich!");
+        } catch (e) {
+            console.log("❌ safeMint fehlgeschlagen:", e.message);
+        }
+    }
 }
 
-main().catch((error) => {
-  console.error("❌ Fehler beim Mint:", error);
-  process.exitCode = 1;
-});
+main().catch(console.error);
